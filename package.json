@@ -1,0 +1,10 @@
+{
+	"name": "hm-social-links",
+	"private": true,
+	"scripts": {
+		"playground:start": "npx @wp-playground/cli server --blueprint=blueprint.json --auto-mount"
+	},
+	"devDependencies": {
+		"@wp-playground/cli": "^1.0.0"
+	}
+}
