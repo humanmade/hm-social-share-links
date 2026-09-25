@@ -5,7 +5,6 @@
  * Description: Social icons wired to dynamic, per-page share-intent URLs via block bindings.
  * Categories: hm-social-links
  * Keywords: share, social, facebook, twitter, x, linkedin, whatsapp
- * Block Types: core/social-links
  */
 ?>
 <!-- wp:social-links {"iconColor":"foreground","iconColorValue":"#000000","openInNewTab":true,"align":"left"} -->

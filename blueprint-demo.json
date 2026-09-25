@@ -25,7 +25,7 @@
 		},
 		{
 			"step": "installPlugin",
-			"pluginZipFile": {
+			"pluginData": {
 				"resource": "url",
 				"url": "https://github.com/humanmade/hm-social-share-links/archive/refs/heads/main.zip"
 			},
