@@ -17,10 +17,33 @@ Bindings API — no custom block, no build step.
 - Ships a pattern (`patterns/share-links.php`) — a `core/social-links` block
   with icons already bound to networks — registered under the "Social
   Links" pattern category.
+- Registers the same binding source client-side (`assets/editor.js`), so
+  bound URLs resolve against the post being edited rather than showing an
+  empty connected field, and adds a Social Link variation per network to the
+  inserter. It's plain browser JS against the `wp.*` globals — no build step.
 
 Front-end resolution works from WP 6.5 (block bindings apply at render time
 regardless of editor support); the 6.9 attribute filter only affects the
 editor's UI/locking behaviour.
+
+## Install
+
+Not on Packagist, so add the repository alongside the `require`:
+
+```json
+{
+	"repositories": [
+		{
+			"type": "vcs",
+			"url": "https://github.com/humanmade/hm-social-share-links"
+		}
+	]
+}
+```
+
+```bash
+composer require humanmade/hm-social-share-links
+```
 
 ## Usage
 
@@ -57,12 +80,19 @@ Add, remove, or override networks with the `hm_social_links_networks`
 filter rather than editing the plugin:
 
 ```php
-add_filter( 'hm_social_links_networks', function ( array $networks, string $url, string $title, int $post_id ) {
-	$networks['telegram'] = 'https://t.me/share/url?url=' . rawurlencode( $url ) . '&text=' . rawurlencode( $title );
+add_filter( 'hm_social_links_networks', function ( array $networks ) {
+	$networks['telegram'] = [
+		'label'    => __( 'Share on Telegram', 'my-theme' ),
+		'template' => 'https://t.me/share/url?url={url}&text={title}',
+	];
 	unset( $networks['pinterest'] );
 	return $networks;
-}, 10, 4 );
+} );
 ```
+
+`{url}` and `{title}` are replaced with the rawurlencoded post permalink and
+title. The same template drives the front end and the editor, so the two
+can't disagree — and a network added here gets an inserter variation too.
 
 Network keys should match a `core/social-link` `service` slug so the same
 key drives both the icon and the bound URL.
