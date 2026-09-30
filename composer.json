@@ -1,0 +1,10 @@
+{
+	"name": "humanmade/hm-social-share-links",
+	"description": "Wires the core Social Links block up to dynamic, per-page share-intent URLs (Facebook, X, LinkedIn, WhatsApp, Reddit, Pinterest, email) via the Block Bindings API, plus a ready-made pattern to insert them.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=7.4",
+		"composer/installers": "^1 || ^2"
+	}
+}

@@ -42,63 +42,112 @@ function allow_social_link_url_binding( array $attributes ): array {
 }
 
 /**
- * Block bindings `get_value_callback`: resolve the share URL for a network.
+ * Enqueue the editor script that resolves bindings client-side.
  *
- * @param array     $source_args Binding args, expects a `network` key.
- * @param \WP_Block $block       Block instance, used for post context.
- * @return string
+ * The network map is handed to JS so the editor and the front end build
+ * their URLs from the same templates.
+ *
+ * @return void
  */
-function get_share_link_url( array $source_args, $block ): string {
-	$network = $source_args['network'] ?? '';
-	$post_id = $block->context['postId'] ?? get_the_ID();
+function enqueue_editor_assets(): void {
+	wp_enqueue_script(
+		'hm-social-links-editor',
+		plugins_url( 'assets/editor.js', PLUGIN_FILE ),
+		[ 'wp-blocks', 'wp-data', 'wp-core-data' ],
+		VERSION,
+		true
+	);
 
-	if ( ! $network || ! $post_id ) {
-		return '';
-	}
-
-	$url      = get_permalink( $post_id );
-	$title    = get_the_title( $post_id );
-	$networks = get_share_networks( $url, $title, $post_id );
-
-	return $networks[ $network ] ?? '';
+	wp_add_inline_script(
+		'hm-social-links-editor',
+		'window.hmSocialLinks = ' . wp_json_encode( [ 'networks' => get_networks() ] ) . ';',
+		'before'
+	);
 }
 
 /**
- * Build the map of network slug => share-intent URL.
+ * Block bindings `get_value_callback`: resolve the share URL for a network.
+ *
+ * Returns null rather than an empty string for an unresolvable network, so
+ * the block keeps its own `url` attribute instead of rendering `href=""`.
+ *
+ * @param array     $source_args Binding args, expects a `network` key.
+ * @param \WP_Block $block       Block instance, used for post context.
+ * @return string|null
+ */
+function get_share_link_url( array $source_args, $block ): ?string {
+	$network  = $source_args['network'] ?? '';
+	$post_id  = $block->context['postId'] ?? get_the_ID();
+	$networks = get_networks();
+
+	if ( ! $post_id || ! isset( $networks[ $network ]['template'] ) ) {
+		return null;
+	}
+
+	// Decode first: an encoded entity in the title would otherwise survive into the share text.
+	$title = wp_strip_all_tags( html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ) );
+
+	return strtr(
+		$networks[ $network ]['template'],
+		[
+			'{url}'   => rawurlencode( get_permalink( $post_id ) ),
+			'{title}' => rawurlencode( $title ),
+		]
+	);
+}
+
+/**
+ * Build the map of supported networks.
  *
  * Network slugs are expected to match a `core/social-link` `service` value
  * so the same key drives both the icon and the bound URL.
  *
- * @param string $url     Page URL being shared.
- * @param string $title   Page title being shared.
- * @param int    $post_id Post ID being shared.
- * @return array<string, string>
+ * @return array<string, array{label: string, template: string}>
  */
-function get_share_networks( string $url, string $title, int $post_id ): array {
-	$encoded_url   = rawurlencode( $url );
-	$encoded_title = rawurlencode( $title );
-
+function get_networks(): array {
 	$networks = [
-		'facebook'  => "https://www.facebook.com/sharer/sharer.php?u={$encoded_url}",
-		'x'         => "https://twitter.com/intent/tweet?url={$encoded_url}&text={$encoded_title}",
-		'linkedin'  => "https://www.linkedin.com/sharing/share-offsite/?url={$encoded_url}",
-		'whatsapp'  => "https://api.whatsapp.com/send?text={$encoded_title}%20{$encoded_url}",
-		'reddit'    => "https://www.reddit.com/submit?url={$encoded_url}&title={$encoded_title}",
-		'pinterest' => "https://pinterest.com/pin/create/button/?url={$encoded_url}&description={$encoded_title}",
-		'mail'      => "mailto:?subject={$encoded_title}&body={$encoded_url}",
+		'facebook'  => [
+			'label'    => __( 'Share on Facebook', 'hm-social-links' ),
+			'template' => 'https://www.facebook.com/sharer/sharer.php?u={url}',
+		],
+		'x'         => [
+			'label'    => __( 'Share on X', 'hm-social-links' ),
+			'template' => 'https://x.com/intent/post?url={url}&text={title}',
+		],
+		'linkedin'  => [
+			'label'    => __( 'Share on LinkedIn', 'hm-social-links' ),
+			'template' => 'https://www.linkedin.com/sharing/share-offsite/?url={url}',
+		],
+		'whatsapp'  => [
+			'label'    => __( 'Share on WhatsApp', 'hm-social-links' ),
+			'template' => 'https://api.whatsapp.com/send?text={title}%20{url}',
+		],
+		'reddit'    => [
+			'label'    => __( 'Share on Reddit', 'hm-social-links' ),
+			'template' => 'https://www.reddit.com/submit?url={url}&title={title}',
+		],
+		'pinterest' => [
+			'label'    => __( 'Share on Pinterest', 'hm-social-links' ),
+			'template' => 'https://pinterest.com/pin/create/button/?url={url}&description={title}',
+		],
+		'mail'      => [
+			'label'    => __( 'Share by email', 'hm-social-links' ),
+			'template' => 'mailto:?subject={title}&body={url}',
+		],
 	];
 
 	/**
-	 * Filter the available share networks and their URL templates.
+	 * Filter the available share networks.
 	 *
-	 * Add or remove networks here rather than editing the plugin. Keys
-	 * should match a `core/social-link` `service` slug so the pattern's
-	 * icon and the bound URL stay in sync.
+	 * Add or remove networks here rather than editing the plugin. Each entry
+	 * is keyed by network slug and holds a `label` and a `template`, where the
+	 * template is a share-intent URL containing the literal placeholders
+	 * `{url}` and `{title}` — both replaced with rawurlencoded values. Slugs
+	 * should match a `core/social-link` `service` slug so the icon and the
+	 * bound URL stay in sync. The editor reads the same map, so a template
+	 * added here works in both places.
 	 *
-	 * @param array<string, string> $networks Map of network slug to share URL.
-	 * @param string                $url      Raw page URL being shared.
-	 * @param string                $title    Raw page title being shared.
-	 * @param int                   $post_id  Post ID being shared.
+	 * @param array<string, array{label: string, template: string}> $networks Map of network slug to label and URL template.
 	 */
-	return apply_filters( 'hm_social_links_networks', $networks, $url, $title, $post_id );
+	return apply_filters( 'hm_social_links_networks', $networks );
 }
