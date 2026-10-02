@@ -1,6 +1,6 @@
 <?php
 /**
- * Block bindings source: resolves dynamic share-intent URLs per network.
+ * Block bindings source: resolves dynamic share-intent URLs per service.
  *
  * @package hm-social-links
  */
@@ -44,7 +44,7 @@ function allow_social_link_url_binding( array $attributes ): array {
 /**
  * Enqueue the editor script that resolves bindings client-side.
  *
- * The network map is handed to JS so the editor and the front end build
+ * The service map is handed to JS so the editor and the front end build
  * their URLs from the same templates.
  *
  * @return void
@@ -60,27 +60,27 @@ function enqueue_editor_assets(): void {
 
 	wp_add_inline_script(
 		'hm-social-links-editor',
-		'window.hmSocialLinks = ' . wp_json_encode( [ 'networks' => get_networks() ] ) . ';',
+		'window.hmSocialLinks = ' . wp_json_encode( [ 'services' => get_services() ] ) . ';',
 		'before'
 	);
 }
 
 /**
- * Block bindings `get_value_callback`: resolve the share URL for a network.
+ * Block bindings `get_value_callback`: resolve the share URL for a service.
  *
- * Returns null rather than an empty string for an unresolvable network, so
+ * Returns null rather than an empty string for an unresolvable service, so
  * the block keeps its own `url` attribute instead of rendering `href=""`.
  *
- * @param array     $source_args Binding args, expects a `network` key.
+ * @param array     $source_args Binding args, expects a `service` key.
  * @param \WP_Block $block       Block instance, used for post context.
  * @return string|null
  */
 function get_share_link_url( array $source_args, $block ): ?string {
-	$network  = $source_args['network'] ?? '';
+	$service  = $source_args['service'] ?? '';
 	$post_id  = $block->context['postId'] ?? get_the_ID();
-	$networks = get_networks();
+	$services = get_services();
 
-	if ( ! $post_id || ! isset( $networks[ $network ]['template'] ) ) {
+	if ( ! $post_id || ! isset( $services[ $service ]['template'] ) ) {
 		return null;
 	}
 
@@ -88,7 +88,7 @@ function get_share_link_url( array $source_args, $block ): ?string {
 	$title = wp_strip_all_tags( html_entity_decode( get_the_title( $post_id ), ENT_QUOTES, 'UTF-8' ) );
 
 	return strtr(
-		$networks[ $network ]['template'],
+		$services[ $service ]['template'],
 		[
 			'{url}'   => rawurlencode( get_permalink( $post_id ) ),
 			'{title}' => rawurlencode( $title ),
@@ -97,15 +97,15 @@ function get_share_link_url( array $source_args, $block ): ?string {
 }
 
 /**
- * Build the map of supported networks.
+ * Build the map of supported services.
  *
- * Network slugs are expected to match a `core/social-link` `service` value
- * so the same key drives both the icon and the bound URL.
+ * Keyed by the `core/social-link` `service` slug, so one key drives both the
+ * icon and the bound URL.
  *
  * @return array<string, array{label: string, template: string}>
  */
-function get_networks(): array {
-	$networks = [
+function get_services(): array {
+	$services = [
 		'facebook'  => [
 			'label'    => __( 'Share on Facebook', 'hm-social-links' ),
 			'template' => 'https://www.facebook.com/sharer/sharer.php?u={url}',
@@ -137,17 +137,17 @@ function get_networks(): array {
 	];
 
 	/**
-	 * Filter the available share networks.
+	 * Filter the available share services.
 	 *
-	 * Add or remove networks here rather than editing the plugin. Each entry
-	 * is keyed by network slug and holds a `label` and a `template`, where the
+	 * Add or remove services here rather than editing the plugin. Each entry
+	 * is keyed by service slug and holds a `label` and a `template`, where the
 	 * template is a share-intent URL containing the literal placeholders
 	 * `{url}` and `{title}` — both replaced with rawurlencoded values. Slugs
 	 * should match a `core/social-link` `service` slug so the icon and the
 	 * bound URL stay in sync. The editor reads the same map, so a template
 	 * added here works in both places.
 	 *
-	 * @param array<string, array{label: string, template: string}> $networks Map of network slug to label and URL template.
+	 * @param array<string, array{label: string, template: string}> $services Map of service slug to label and URL template.
 	 */
-	return apply_filters( 'hm_social_links_networks', $networks );
+	return apply_filters( 'hm_social_links_services', $services );
 }
