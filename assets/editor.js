@@ -1,30 +1,30 @@
 /**
  * Editor-side half of the share-link binding: resolves bound URLs against the
  * post being edited, and registers a pre-bound Social Link variation per
- * network. Plain browser JS against the `wp.*` globals — the plugin has no
+ * service. Plain browser JS against the `wp.*` globals — the plugin has no
  * build step.
  *
  * @package hm-social-links
  */
 
 ( function ( wp, settings ) {
-	if ( ! wp || ! wp.blocks || ! wp.data || ! settings || ! settings.networks ) {
+	if ( ! wp || ! wp.blocks || ! wp.data || ! settings || ! settings.services ) {
 		return;
 	}
 
 	var SOURCE = 'hm-social-links/share-link';
-	var networks = settings.networks;
+	var services = settings.services;
 
 	/**
-	 * Substitute the encoded URL and title into a network's template.
+	 * Substitute the encoded URL and title into a service's template.
 	 *
-	 * @param {string} network Network slug.
+	 * @param {string} service Service slug.
 	 * @param {string} url     Encoded post URL.
 	 * @param {string} title   Encoded post title.
-	 * @return {string|undefined} Share URL, or undefined for an unknown network.
+	 * @return {string|undefined} Share URL, or undefined for an unknown service.
 	 */
-	function buildUrl( network, url, title ) {
-		var config = networks[ network ];
+	function buildUrl( service, url, title ) {
+		var config = services[ service ];
 
 		if ( ! config || ! config.template ) {
 			return undefined;
@@ -59,29 +59,29 @@
 
 			Object.keys( args.bindings ).forEach( function ( attribute ) {
 				var binding = args.bindings[ attribute ] || {};
-				var network = ( binding.args || {} ).network;
+				var service = ( binding.args || {} ).service;
 
-				values[ attribute ] = buildUrl( network, url, title );
+				values[ attribute ] = buildUrl( service, url, title );
 			} );
 
 			return values;
 		},
 	} );
 
-	Object.keys( networks ).forEach( function ( network ) {
+	Object.keys( services ).forEach( function ( service ) {
 		// Matching on both attributes is what makes this win over core's own
 		// variation for the same service.
 		wp.blocks.registerBlockVariation( 'core/social-link', {
-			name: 'share-' + network,
-			title: networks[ network ].label,
+			name: 'share-' + service,
+			title: services[ service ].label,
 			attributes: {
-				service: network,
-				label: networks[ network ].label,
+				service: service,
+				label: services[ service ].label,
 				metadata: {
 					bindings: {
 						url: {
 							source: SOURCE,
-							args: { network: network },
+							args: { service: service },
 						},
 					},
 				},

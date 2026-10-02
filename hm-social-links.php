@@ -3,7 +3,7 @@
  * Plugin Name:       HM Social Links
  * Plugin URI:        https://github.com/humanmade/hm-social-share-links
  * Description:       Wires the core Social Links block up to dynamic, per-page share-intent URLs (Facebook, X, LinkedIn, WhatsApp, Reddit, Pinterest, email) via the Block Bindings API, plus a ready-made pattern to insert them.
- * Version:           0.2.0
+ * Version:           0.3.0
  * Requires at least: 6.9
  * Requires PHP:      7.4
  * Author:            Human Made
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( __NAMESPACE__ . '\VERSION', '0.2.0' );
+define( __NAMESPACE__ . '\VERSION', '0.3.0' );
 define( __NAMESPACE__ . '\PLUGIN_FILE', __FILE__ );
 define( __NAMESPACE__ . '\PLUGIN_DIR', __DIR__ );
 

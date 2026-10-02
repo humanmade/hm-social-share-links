@@ -10,16 +10,16 @@ Bindings API — no custom block, no build step.
 
 - Registers a block bindings source, `hm-social-links/share-link`, whose
   `get_value_callback` builds a share URL for the current post from a
-  `network` arg (`inc/namespace.php`).
+  `service` arg (`inc/namespace.php`).
 - Adds `core/social-link`'s `url` attribute to the editor's supported
   binding attributes (WP 6.9+), so the block shows the native
   connected/locked state instead of a plain editable field.
 - Ships a pattern (`patterns/share-links.php`) — a `core/social-links` block
-  with icons already bound to networks — registered under the "Social
+  with icons already bound to services — registered under the "Social
   Links" pattern category.
 - Registers the same binding source client-side (`assets/editor.js`), so
   bound URLs resolve against the post being edited rather than showing an
-  empty connected field, and adds a Social Link variation per network to the
+  empty connected field, and adds a Social Link variation per service to the
   inserter. It's plain browser JS against the `wp.*` globals — no build step.
 
 Front-end resolution works from WP 6.5 (block bindings apply at render time
@@ -49,9 +49,9 @@ composer require humanmade/hm-social-share-links
 
 Activate the plugin, then insert the "Share Links" pattern from the block
 inserter. Add, remove, or reorder icons as normal — each `core/social-link`
-block just needs a `service` matching one of the network keys below, with a
+block just needs a `service` matching one of the service keys below, with a
 `metadata.bindings.url` pointing at `hm-social-links/share-link` and that
-same key as the `network` arg.
+same key as the `service` arg.
 
 ## Local testing (WordPress Playground)
 
@@ -76,26 +76,26 @@ from `raw.githubusercontent.com`.
 
 ## Extending
 
-Add, remove, or override networks with the `hm_social_links_networks`
+Add, remove, or override services with the `hm_social_links_services`
 filter rather than editing the plugin:
 
 ```php
-add_filter( 'hm_social_links_networks', function ( array $networks ) {
-	$networks['telegram'] = [
+add_filter( 'hm_social_links_services', function ( array $services ) {
+	$services['telegram'] = [
 		'label'    => __( 'Share on Telegram', 'my-theme' ),
 		'template' => 'https://t.me/share/url?url={url}&text={title}',
 	];
-	unset( $networks['pinterest'] );
-	return $networks;
+	unset( $services['pinterest'] );
+	return $services;
 } );
 ```
 
 `{url}` and `{title}` are replaced with the rawurlencoded post permalink and
 title. The same template drives the front end and the editor, so the two
-can't disagree — and a network added here gets an inserter variation too.
+can't disagree — and a service added here gets an inserter variation too.
 
-Network keys should match a `core/social-link` `service` slug so the same
-key drives both the icon and the bound URL.
+Each key is the `core/social-link` `service` slug it applies to, which is
+what drives both the icon and the bound URL.
 
 ## Requirements
 
